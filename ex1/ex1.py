@@ -9,6 +9,7 @@ import time
 
 class ActivationSigmoid:
     def __call__(self, IN_VEC):
+        print IN_VEC
         return 1. / (1. + np.exp(-IN_VEC))
     def derivative(self, out):
         return (1.0 - out) * out
@@ -31,15 +32,15 @@ train_y = np.loadtxt("train_y_top_100")
 test_x = np.loadtxt("train_x_top_10")
 # test_x = np.loadtxt("test_x")
 train_x=[[pixel/255 for pixel in pic] for pic in train_x]
-architecture=[[pic_size,50,50,nclasses]]
-epocs=[100]
-learning_rates=[0.01]
-weight_init_boundries=[0.08]
+architectures=[[pic_size,100,100,nclasses]]
+epocs=[100,300]
+learning_rates=[0.01,0.05]
+weight_init_boundries=[0.08,0.5]
 
 train_x=[np.array(X) for X in train_x]
 validation_ratio=.2
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
-logging.basicConfig(filename="nn.log",level=logging.ERROR)
+logging.basicConfig(filename="nn.log",level=logging.DEBUG)
 
 def init_model(params):
     '''
@@ -143,12 +144,13 @@ def train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_l
     # plt.savefig("perf.tst_{}.e_{}.lr_{}.hs_{}.w_{}.png".format(tst_name,epocs,learning_rate,architectures[0][1],weight_init_boundries[0]))
     # plt.clf()
     return avg_loss_list,avg_acc_list
-def test(W,B,test_x):
+def test(W,B,test_x,ending_epoc,learning_rate,architecture,weight_init_boundry):
     '''
     test over the test set using the learned weights matrix
     '''
     c=0.0
-    with open("test.pred", 'w') as f:
+    with open("test.e_{}.lr_{}.hs1_{}.hs2_{}.w_{}.pred".format(
+            ending_epoc,learning_rate,architecture[1],architecture[2],weight_init_boundry), 'w') as f:
         for X in test_x:
             p=np.squeeze(np.asarray(fprop(W, B, X)[-1]))
             # print("p {} y_hat {}".format(p,p.argmax()))
@@ -161,9 +163,9 @@ for weight_init_boundry in weight_init_boundries:
              avg_acc_list = []
              starting_epoc=0
              for ending_epoc in epocs:
-                 logging.error("start training with params: e_{}.lr_{}.hs_{}.w_{}".format(ending_epoc,learning_rate,architecture[1],weight_init_boundry))
+                 logging.error("start training with params: e_{}.lr_{}.hs1_{}.hs2_{}.w_{}".format(ending_epoc,learning_rate,architecture[1],architecture[2],weight_init_boundry))
                  avg_loss_list, avg_acc_list = train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_list,avg_acc_list)
                  starting_epoc = ending_epoc
                  # with open(r"W.e_{}.lr_{}.hs_{}.w_{}".format(ending_epoc,learning_rate,architecture[1],weight_init_boundry),"wb") as f:
                  #     f.write(pickle.dumps((W,avg_loss_list, avg_acc_list)))
-                 test(W,B,test_x)
+                 test(W,B,test_x,ending_epoc,learning_rate,architecture,weight_init_boundry)
