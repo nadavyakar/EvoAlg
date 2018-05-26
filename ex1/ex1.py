@@ -1,28 +1,14 @@
-import numpy as np
 import random as rnd
 from math import log, exp
-import pickle
-import sys
 import matplotlib.pyplot as plt
 import logging
 import time
-
 import os
 import struct
 import numpy as np
 
-"""
-Loosely inspired by http://abel.ee.ucla.edu/cvxopt/_downloads/mnist.py
-which is GPL licensed.
-"""
 
 def read(dataset = "training", path = "."):
-    """
-    Python function for importing the MNIST data set.  It returns an iterator
-    of 2-tuples with the first element being the label and the second element
-    being a numpy.uint8 2D array of pixel data for the given image.
-    """
-
     if dataset is "training":
         fname_img = os.path.join(path, 'train-images-idx3-ubyte')
         fname_lbl = os.path.join(path, 'train-labels-idx1-ubyte')
@@ -32,7 +18,6 @@ def read(dataset = "training", path = "."):
     else:
         raise ValueError, "dataset must be 'testing' or 'training'"
 
-    # Load everything in some numpy arrays
     with open(fname_lbl, 'rb') as flbl:
         magic, num = struct.unpack(">II", flbl.read(8))
         lbl = np.fromfile(flbl, dtype=np.int8)
@@ -43,14 +28,10 @@ def read(dataset = "training", path = "."):
 
     get_img = lambda idx: (lbl[idx], img[idx])
 
-    # Create an iterator which returns each image in turn
     for i in xrange(len(lbl)):
         yield get_img(i)
 
 # def show(image):
-#     """
-#     Render a given numpy.uint8 2D array of pixel data.
-#     """
 #     from matplotlib import pyplot
 #     import matplotlib as mpl
 #     fig = pyplot.figure()
@@ -90,13 +71,12 @@ test_x = []
 test_y = []
 for label,img in read("testing"):
     test_x.append(np.array([float(x) / 255 for x in img.reshape(-1)]))
-    test_y.append(label)
+    # test_y.append(label)
 
-# test_x = np.loadtxt("test_x")
 architectures=[[pic_size,100,50,nclasses]]
-epocs=[10,100,300]
-learning_rates=[0.01,0.05]
-weight_init_boundries=[0.08,0.5]
+epocs=[10,100,130]
+learning_rates=[0.01]
+weight_init_boundries=[0.08]
 
 validation_ratio=.2
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
@@ -199,9 +179,15 @@ def train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_l
         avg_loss_list.append(avg_loss)
         avg_acc_list.append(acc)
     epocs_list = list(range(ending_epoc))
-    plt.plot(epocs_list,avg_loss_list,'red',epocs_list,avg_acc_list,'blue')
+    plt.plot(epocs_list,avg_loss_list,'red')
     plt.xlabel("epocs")
-    plt.savefig("perf.e_{}.lr_{}.hs0_{}.hs1_{}.w_{}.png".format(ending_epoc,learning_rate,architectures[0][1],architectures[0][2],weight_init_boundries[0]))
+    plt.ylabel("loss")
+    plt.savefig("loss.e_{}.lr_{}.hs0_{}.hs1_{}.w_{}.png".format(ending_epoc,learning_rate,architectures[0][1],architectures[0][2],weight_init_boundries[0]))
+    plt.clf()
+    plt.plot(epocs_list,avg_acc_list,'red')
+    plt.xlabel("epocs")
+    plt.ylabel("accuracy")
+    plt.savefig("accuracy.e_{}.lr_{}.hs0_{}.hs1_{}.w_{}.png".format(ending_epoc,learning_rate,architectures[0][1],architectures[0][2],weight_init_boundries[0]))
     plt.clf()
     return avg_loss_list,avg_acc_list
 def test(W,B,test_x,ending_epoc,learning_rate,architecture,weight_init_boundry):
@@ -227,6 +213,4 @@ for weight_init_boundry in weight_init_boundries:
                  logging.error("start training with params: e_{}.lr_{}.hs1_{}.hs2_{}.w_{}".format(ending_epoc,learning_rate,architecture[1],architecture[2],weight_init_boundry))
                  avg_loss_list, avg_acc_list = train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_list,avg_acc_list)
                  starting_epoc = ending_epoc
-                 # with open(r"W.e_{}.lr_{}.hs_{}.w_{}".format(ending_epoc,learning_rate,architecture[1],weight_init_boundry),"wb") as f:
-                 #     f.write(pickle.dumps((W,avg_loss_list, avg_acc_list)))
                  test(W,B,test_x,ending_epoc,learning_rate,architecture,weight_init_boundry)
