@@ -7,9 +7,62 @@ import matplotlib.pyplot as plt
 import logging
 import time
 
+import os
+import struct
+import numpy as np
+
+"""
+Loosely inspired by http://abel.ee.ucla.edu/cvxopt/_downloads/mnist.py
+which is GPL licensed.
+"""
+
+def read(dataset = "training", path = "."):
+    """
+    Python function for importing the MNIST data set.  It returns an iterator
+    of 2-tuples with the first element being the label and the second element
+    being a numpy.uint8 2D array of pixel data for the given image.
+    """
+
+    if dataset is "training":
+        fname_img = os.path.join(path, 'train-images-idx3-ubyte')
+        fname_lbl = os.path.join(path, 'train-labels-idx1-ubyte')
+    elif dataset is "testing":
+        fname_img = os.path.join(path, 't10k-images-idx3-ubyte')
+        fname_lbl = os.path.join(path, 't10k-labels-idx1-ubyte')
+    else:
+        raise ValueError, "dataset must be 'testing' or 'training'"
+
+    # Load everything in some numpy arrays
+    with open(fname_lbl, 'rb') as flbl:
+        magic, num = struct.unpack(">II", flbl.read(8))
+        lbl = np.fromfile(flbl, dtype=np.int8)
+
+    with open(fname_img, 'rb') as fimg:
+        magic, num, rows, cols = struct.unpack(">IIII", fimg.read(16))
+        img = np.fromfile(fimg, dtype=np.uint8).reshape(len(lbl), rows, cols)
+
+    get_img = lambda idx: (lbl[idx], img[idx])
+
+    # Create an iterator which returns each image in turn
+    for i in xrange(len(lbl)):
+        yield get_img(i)
+
+# def show(image):
+#     """
+#     Render a given numpy.uint8 2D array of pixel data.
+#     """
+#     from matplotlib import pyplot
+#     import matplotlib as mpl
+#     fig = pyplot.figure()
+#     ax = fig.add_subplot(1,1,1)
+#     imgplot = ax.imshow(image, cmap=mpl.cm.Greys)
+#     imgplot.set_interpolation('nearest')
+#     ax.xaxis.set_ticks_position('top')
+#     ax.yaxis.set_ticks_position('left')
+#     pyplot.show()
+
 class ActivationSigmoid:
     def __call__(self, IN_VEC):
-        print IN_VEC
         return 1. / (1. + np.exp(-IN_VEC))
     def derivative(self, out):
         return (1.0 - out) * out
@@ -25,19 +78,26 @@ class ActivationInputIdentity:
     def derivative(self, out):
         return np.array([.0,])
 
-pic_size=784
+pic_size=28*28
 nclasses=10
-train_x = np.loadtxt("train_x_top_100")
-train_y = np.loadtxt("train_y_top_100")
-test_x = np.loadtxt("train_x_top_10")
+train_x = []
+train_y = []
+for label,img in read("training"):
+    train_x.append(np.array([float(x) / 255 for x in img.reshape(-1)]))
+    train_y.append(label)
+
+test_x = []
+test_y = []
+for label,img in read("testing"):
+    test_x.append(np.array([float(x) / 255 for x in img.reshape(-1)]))
+    test_y.append(label)
+
 # test_x = np.loadtxt("test_x")
-train_x=[[pixel/255 for pixel in pic] for pic in train_x]
-architectures=[[pic_size,100,100,nclasses]]
-epocs=[100,300]
+architectures=[[pic_size,100,50,nclasses]]
+epocs=[10,100,300]
 learning_rates=[0.01,0.05]
 weight_init_boundries=[0.08,0.5]
 
-train_x=[np.array(X) for X in train_x]
 validation_ratio=.2
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
 logging.basicConfig(filename="nn.log",level=logging.DEBUG)
@@ -138,11 +198,11 @@ def train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_l
         logging.debug("epoc {} avg_loss {} acc {} duration {}".format(e,avg_loss,acc,duration))
         avg_loss_list.append(avg_loss)
         avg_acc_list.append(acc)
-    # epocs_list = list(range(ending_epoc))
-    # plt.plot(epocs_list,avg_loss_list,'bs',epocs_list,avg_acc_list,'rs')
-    # plt.xlabel("epocs")
-    # plt.savefig("perf.tst_{}.e_{}.lr_{}.hs_{}.w_{}.png".format(tst_name,epocs,learning_rate,architectures[0][1],weight_init_boundries[0]))
-    # plt.clf()
+    epocs_list = list(range(ending_epoc))
+    plt.plot(epocs_list,avg_loss_list,'red',epocs_list,avg_acc_list,'blue')
+    plt.xlabel("epocs")
+    plt.savefig("perf.e_{}.lr_{}.hs0_{}.hs1_{}.w_{}.png".format(ending_epoc,learning_rate,architectures[0][1],architectures[0][2],weight_init_boundries[0]))
+    plt.clf()
     return avg_loss_list,avg_acc_list
 def test(W,B,test_x,ending_epoc,learning_rate,architecture,weight_init_boundry):
     '''
@@ -155,6 +215,7 @@ def test(W,B,test_x,ending_epoc,learning_rate,architecture,weight_init_boundry):
             p=np.squeeze(np.asarray(fprop(W, B, X)[-1]))
             # print("p {} y_hat {}".format(p,p.argmax()))
             f.write("{}\n".format(p.argmax()))
+
 for weight_init_boundry in weight_init_boundries:
      for architecture in architectures:
          for learning_rate in learning_rates:
