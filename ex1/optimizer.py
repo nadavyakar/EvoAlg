@@ -11,12 +11,6 @@ import random
 from network import Network
 from ev_alg_ex1_nn import init_model
 import numpy as np
-from ev_alg_ex1_nn import train_x
-from ev_alg_ex1_nn import train_y
-from ev_alg_ex1_nn import split_to_valid
-from ev_alg_ex1_nn import validate
-import random as rnd
-from ev_alg_ex1_nn import test
 
 class Optimizer():
     """Class that implements genetic algorithm for MLP optimization."""
@@ -134,10 +128,6 @@ class Optimizer():
 
         network_1 = self.mutate(network_1)
         network_2 = self.mutate(network_2)
-        # Randomly mutate some of the children.
-        # if self.mutate_chance > random.random():
-        #     child_1 = self.mutate(network_1)
-        #     child_2 = self.mutate(network_2)
 
         children.append(network_1)
         children.append(network_2)
@@ -158,8 +148,6 @@ class Optimizer():
 
 
         layer_sizes = network.nn_param_choices[0]
-        #mutation = [ np.matrix([[random.uniform(-0.05,0.05)] * (layer_sizes[l]+1)] * layer_sizes[l+1]) for l in range(len(layer_sizes)-1) ]
-
 
         network_mutation = [ np.matrix([[np.random.normal(0,0.1) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1)]
         B_mutation = [ np.matrix([np.random.normal(0,0.1) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
@@ -182,23 +170,37 @@ class Optimizer():
 
         """
         # Get scores for each network.
-        graded = [(self.fitness(network), network) for network in pop]
 
+        graded = [(self.fitness(network), network) for network in pop]
         # Sort on the scores.
         graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
 
+        rank_sum = 0
+        for i in range(len(graded)):
+            rank_sum += graded[i].accuracy
+
+
+
+        for i in range(len(graded)):
+            net = graded[i]
+            net.accuracy = float(net.accuracy) / rank_sum
+
         # Get the number we want to keep for the next gen.
         retain_length = int(len(graded)*self.retain)
-
+        ptential_parents_length = int(len(graded)*0.1)
         # The parents are every network we want to keep.
-        parents = graded[:retain_length]
+
+        parents = graded[:10]
+        ptential_parents = graded[:ptential_parents_length]
+        ptential_parents_lengh = len(ptential_parents)
 
         # For those we aren't keeping, randomly keep some anyway.
-        for individual in graded[retain_length:]:
+        for individual in graded[10:]:
             if self.random_select > random.random():
                 parents.append(individual)
 
         # Now find out how many spots we have left to fill.
+        #parents_length = len(parents)
         parents_length = len(parents)
         desired_length = len(pop) - parents_length
         children = []
@@ -207,13 +209,13 @@ class Optimizer():
         while len(children) < desired_length:
 
             # Get a random mom and dad.
-            male = random.randint(0, parents_length-1)
-            female = random.randint(0, parents_length-1)
+            male = random.randint(0, ptential_parents_lengh-1)
+            female = random.randint(0, ptential_parents_lengh-1)
 
             # Assuming they aren't the same network...
             if male != female:
-                male = parents[male]
-                female = parents[female]
+                male = ptential_parents[male]
+                female = ptential_parents[female]
 
                 # Breed them.
                 babies = self.breed(male, female)

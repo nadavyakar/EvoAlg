@@ -1,12 +1,7 @@
 """Class that represents the network to be evolved."""
 import random
 import logging
-from ev_alg_ex1_nn import train_x
-from ev_alg_ex1_nn import train_y
-from ev_alg_ex1_nn import split_to_valid
-from ev_alg_ex1_nn import validate
 from train import train_and_score
-from train import train_and_score2
 
 class Network():
     """Represent a network and let us operate on it.
@@ -18,6 +13,7 @@ class Network():
         Args:
         """
         self.accuracy = 0.
+        self.avg_accuracy = 0.
         self.nn_param_choices = nn_param_choices
         self.network = {}
         self.B = {}
@@ -43,11 +39,8 @@ class Network():
 
 
         if self.accuracy == 0.:
-            self.accuracy = train_and_score2(self.network, self.B,valid,i)
-            #self.accuracy = train_and_score(self.network, self.B)
-        #self.print_network()
+            self.avg_accuracy, self.accuracy = train_and_score(self.network, self.B,valid,i)
 
     def print_network(self):
         """Print out a network."""
-       # logging.info(self.network)
         logging.info("Network accuracy: %.2f%%" % (self.accuracy * 100))

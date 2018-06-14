@@ -138,7 +138,7 @@ def split_to_valid(train_x,train_y):
     rnd.shuffle(data_set)
     train_size=len(data_set)-int(validation_ratio*len(data_set))
     #return data_set[:train_size],data_set[train_size:]
-    return data_set[:train_size],data_set[59700:]
+    return data_set[:train_size],data_set[59900:]
 
 
 sigmoid=ActivationSigmoid()
@@ -182,7 +182,7 @@ def validate(W,B,valid):
        # logging.error("{} X p {} y {}".format(i,out[-1].argmax(),y))
         if out[-1].argmax() == y:
             correct += 1
-    return sum_loss/ len(valid), correct/ len(valid)
+    return sum_loss/ len(valid), correct/ len(valid), correct
 
 
 

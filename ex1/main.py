@@ -29,6 +29,7 @@ def train_networks(networks):
     logging.info(" split_to_valid")
     train,valid=split_to_valid(train_x,train_y)
     logging.info("end split_to_valid")
+
     i=1
     for network in networks:
         network.train(valid,i)
@@ -47,7 +48,7 @@ def get_average_accuracy(networks):
     """
     total_accuracy = 0
     for network in networks:
-        total_accuracy += network.accuracy
+        total_accuracy += network.avg_accuracy
 
     return total_accuracy / len(networks)
 
@@ -107,13 +108,10 @@ def print_networks(networks):
 
 def main():
     """Evolve a network."""
-    generations = 10000  # Number of times to evole the population.
+    generations = 7000  # Number of times to evole the population.
     population = 100  # Number of networks in each generation.
 
-    nn_param_image = [pic_size,50,20,nclasses], 1
-    nn_param_xor = [2,2,2], 0.08
-    nn_param_and = [2,2], 0.08
-   # nn_param = nn_param_image
+    nn_param_image = [pic_size,128,64,nclasses], 1
 
     nn_param = nn_param_image
 
