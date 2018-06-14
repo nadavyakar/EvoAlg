@@ -9,7 +9,7 @@ import os
 import struct
 import numpy as np
 import math
-
+import time
 pic_size=784
 nclasses=10
 batch_size=1
@@ -165,6 +165,41 @@ def fprop(W,B,X):
     h3 = softmax(z3)
     return [h1,h2,h3]
 
+def fprop_relu(W,B,X):
+    W1=W[0]
+    b1=B[0]
+    W2=W[1]
+    b2=B[1]
+    W3=W[2]
+    b3=B[2]
+    x=X
+    z1 = np.dot(W1, x) + b1
+    # h1 = sigmoid(z1)
+    h1 = relu(z1)
+    z2 = np.dot(W2, h1.T).reshape(-1) + b2
+    # h2 = sigmoid(z2)
+    h2 = relu(z2)
+    z3 = np.dot(W3, h2.T).reshape(-1) + b3
+    h3 = softmax(z3)
+    return [h1,h2,h3]
+
+def fprop_relu_no_softmax(W,B,X):
+    W1=W[0]
+    b1=B[0]
+    W2=W[1]
+    b2=B[1]
+    W3=W[2]
+    b3=B[2]
+    x=X
+    z1 = np.dot(W1, x) + b1
+    # h1 = sigmoid(z1)
+    h1 = relu(z1)
+    z2 = np.dot(W2, h1.T).reshape(-1) + b2
+    # h2 = sigmoid(z2)
+    h2 = relu(z2)
+    z3 = np.dot(W3, h2.T).reshape(-1) + b3
+    # h3 = softmax(z3)
+    return [h1,h2,z3]
 
 def validate(W,B,valid):
     '''
@@ -173,15 +208,27 @@ def validate(W,B,valid):
     sum_loss= 0.0
     correct=0.0
     i=0
+    # s=time.time()
     for X, y in valid:
+        s_=time.time()
         i+=1
-        out = fprop(W,B,X)
+        # out = fprop(W,B,X)
+        out=fprop_relu_no_softmax(W,B,X)
         # v = loss(out[-1],y)
-        sum_loss += loss(out[-1],y)
+        # sum_loss += loss(out[-1],y)
       #  print("{} X  p {} y {}".format(i,out[-1].argmax(),y))
        # logging.error("{} X p {} y {}".format(i,out[-1].argmax(),y))
         if out[-1].argmax() == y:
             correct += 1
+        # if i==1:
+        #     logging.info("single net valid over first example took {} sec".format(time.time() - s_))
+        #     s_=time.time()
+        #     fprop_relu(W,B,X)
+        #     logging.info("single net fprop using relu took {} sec".format(time.time()-s_))
+        #     s_ = time.time()
+        #     fprop_relu_no_softmax(W, B, X)
+        #     logging.info("single net fprop using relu without softmax took {} sec".format(time.time() - s_))
+    # logging.info("single net valid took {} sec for {} examples".format(time.time()-s,len(valid)))
     return sum_loss/ len(valid), correct/ len(valid), correct
 
 
@@ -201,7 +248,7 @@ def test(W,B,test_x):
 train_x = []
 train_y = []
 
-for label,img in read("training", "C:\Users\\amir\Desktop\Keren\projects\ev_algo_ex1"):
+for label,img in read("training", "."):
      train_x.append(np.array([float(x) / 255 for x in img.reshape(-1)]))
      train_y.append(label)
 #train_x = train_x[:1000]

@@ -16,9 +16,9 @@ def train_and_score(network, B, valid,i):
         dataset (str): Dataset to use for training/evaluating
     """
 
-    logging.info(" validate")
-    avg_loss,avg_acc,acc=validate(network, B, valid)
-    logging.info("net {} avg loss {} avg_acc {} acc {}".format(i,avg_loss,avg_acc, acc))
+#    logging.info(" validate")
+    _,avg_acc,acc=validate(network, B, valid)
+    #logging.info("net {} avg loss {} avg_acc {} acc {}".format(i,avg_loss,avg_acc, acc))
 
 
     return avg_acc,acc  # 1 is accuracy. 0 is loss.

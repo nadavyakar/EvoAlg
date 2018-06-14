@@ -7,6 +7,9 @@ from ev_alg_ex1_nn import test, test_x
 from ev_alg_ex1_nn import train_x
 from ev_alg_ex1_nn import train_y
 from ev_alg_ex1_nn import split_to_valid
+import random as rnd
+import matplotlib.pyplot as plt
+import time
 
 # Setup logging.
 logging.basicConfig(
@@ -18,7 +21,7 @@ logging.basicConfig(
 
 
 logging.basicConfig(filename="C:\Users\\amir\Desktop\Keren\projects\ev_algo_ex1\data\\genetic.log",level=logging.INFO)
-def train_networks(networks):
+def train_networks(networks, valid):
     """Train each network.
 
     Args:
@@ -26,15 +29,19 @@ def train_networks(networks):
         dataset (str): Dataset to use for training/evaluating
     """
 
-    logging.info(" split_to_valid")
-    train,valid=split_to_valid(train_x,train_y)
-    logging.info("end split_to_valid")
+    # logging.info(" split_to_valid")
+    # nadav: marked out, used valid from the list instead
+    #train,valid=split_to_valid(train_x,train_y)
+    # logging.info("end split_to_valid")
 
+    # s = time.time()
     i=1
     for network in networks:
+        # s_ = time.time()
         network.train(valid,i)
+        # logging.info("sinle net evaluation took {} sec".format(time.time() - s_))
         i+=1
-
+    # logging.info("total net evaluation took {} sec".format(time.time()-s))
 
 def get_average_accuracy(networks):
     """Get the average accuracy for a group of networks.
@@ -51,6 +58,15 @@ def get_average_accuracy(networks):
         total_accuracy += network.avg_accuracy
 
     return total_accuracy / len(networks)
+num_of_chunks=60
+def split_to_valid_chunks(train_x,train_y):
+    data_set=zip(train_x, train_y)
+    rnd.shuffle(data_set)
+    valid_list=[]
+    for i in range(num_of_chunks):
+        valid_list.append(data_set[int(i*(1./num_of_chunks)*len(data_set)):int((i+1)*(1./num_of_chunks)*len(data_set))])
+    #return data_set[:train_size],data_set[train_size:]
+    return valid_list
 
 def   generate(generations, population, nn_param_choices):
     """Generate a network with the genetic algorithm.
@@ -64,18 +80,19 @@ def   generate(generations, population, nn_param_choices):
     """
     optimizer = Optimizer(nn_param_choices)
     networks = optimizer.create_population(population)
-
+    valid_list = split_to_valid_chunks(train_x,train_y)
+    avg_acc_list = []
     # Evolve the generation.
     for i in range(generations):
         logging.info("***Doing generation %d of %d***" %
                      (i + 1, generations))
 
         # Train and get accuracy for networks.
-        train_networks(networks)
+        train_networks(networks, valid_list[i%len(valid_list)])
 
         # Get the average accuracy for this generation.
         average_accuracy = get_average_accuracy(networks)
-
+        avg_acc_list.append(average_accuracy)
         # Print out the average accuracy each generation.
         logging.info("Generation average: %.2f%%" % (average_accuracy * 100))
         logging.info('-'*80)
@@ -84,6 +101,12 @@ def   generate(generations, population, nn_param_choices):
         if i != generations - 1:
             # Do the evolution.
             networks = optimizer.evolve(networks)
+    epocs_list = list(range(generations))
+    plt.plot(epocs_list,avg_acc_list,'red')
+    plt.xlabel("generations")
+    plt.ylabel("accuracy")
+    plt.savefig("accuracy.png")
+    plt.clf()
 
     # Sort our final population.
     networks = sorted(networks, key=lambda x: x.accuracy, reverse=True)
@@ -108,8 +131,8 @@ def print_networks(networks):
 
 def main():
     """Evolve a network."""
-    generations = 7000  # Number of times to evole the population.
-    population = 100  # Number of networks in each generation.
+    generations =  1200 # Number of times to evole the population.
+    population = 700  # Number of networks in each generation.
 
     nn_param_image = [pic_size,128,64,nclasses], 1
 

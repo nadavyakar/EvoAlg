@@ -11,6 +11,9 @@ import random
 from network import Network
 from ev_alg_ex1_nn import init_model
 import numpy as np
+import logging
+import time
+
 
 class Optimizer():
     """Class that implements genetic algorithm for MLP optimization."""
@@ -91,12 +94,15 @@ class Optimizer():
             (list): Two network objects
 
         """
+        # s=time.time()
+        # s1=s
         children = []
         child_1, child_1_B = self.creat_new_model()
         child_2, child_2_B  = self.creat_new_model()
-
+        # logging.info("child creation took {} sec".format(time.time()-s))
         layers_size = len(mother.nn_param_choices[0])
 
+        # s_net = time.time()
         for layer_num in range(layers_size-1):
             weights_num = mother.nn_param_choices[0][layer_num+1]-1
             mother_weights = weights_num // 2
@@ -106,8 +112,9 @@ class Optimizer():
             mother_b = mother.B[layer_num]
             father_layer = father.network[layer_num]
             father_b = father.B[layer_num]
+            # s = time.time()
             for weight in range(weights_num):
-
+                # s_ = time.time()
                 if weight in mother_random_layer_weights:
                     child_1[layer_num][weight] += mother_layer[weight]
                     child_1_B[layer_num][0,weight] += mother_b[0,weight]
@@ -118,20 +125,27 @@ class Optimizer():
                     child_1_B[layer_num][0,weight] += father_b[0,weight]
                     child_2[layer_num][weight] += mother_layer[weight]
                     child_2_B[layer_num][0,weight] += mother_b[0,weight]
+        #         logging.info("merging weight took {} sec".format(time.time()-s_))
+        #     logging.info("merging all weights took {} sec".format(time.time()-s))
+        # logging.info("merging entire net took {} sec".format(time.time()-s_net))
 
-         # Now create a network object.
+        # s = time.time()
+        # Now create a network object.
         network_1 = Network(self.nn_param_choices)
         network_1.create_set(child_1, child_1_B)
 
         network_2 = Network(self.nn_param_choices)
         network_2.create_set(child_2, child_2_B)
+        # logging.info("child creation took {} sec".format(time.time() - s))
 
+        # s = time.time()
         network_1 = self.mutate(network_1)
         network_2 = self.mutate(network_2)
+        # logging.info("child mutation took {} sec".format(time.time() - s))
 
         children.append(network_1)
         children.append(network_2)
-
+        # logging.info("entire breeding took {} sec".format(time.time() - s1))
         return children
 
     def mutate(self, network):
@@ -148,9 +162,11 @@ class Optimizer():
 
 
         layer_sizes = network.nn_param_choices[0]
-
-        network_mutation = [ np.matrix([[np.random.normal(0,0.1) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1)]
-        B_mutation = [ np.matrix([np.random.normal(0,0.1) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
+        #  nadav: using a more efficient normal noise generation
+        network_mutation =  [ np.random.normal(0,0.1,(layer_sizes[l+1],layer_sizes[l])) for l in range(len(layer_sizes)-1) ]
+                            # [ np.matrix([[np.random.normal(0,0.1) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1)]
+        B_mutation = [ np.random.normal(0,0.1,layer_sizes[l+1]) for l in range(len(layer_sizes)-1) ]
+            # [ np.matrix([np.random.normal(0,0.1) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
 
         for l in range(len(layer_sizes)-1):
             network.network[l] += network_mutation[l]
@@ -171,10 +187,13 @@ class Optimizer():
         """
         # Get scores for each network.
 
+        # s=time.time()
+        # s_=s
         graded = [(self.fitness(network), network) for network in pop]
         # Sort on the scores.
         graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
 
+        # logging.info("evolve: sorting took {} sec".format(time.time()-s))
         rank_sum = 0
         for i in range(len(graded)):
             rank_sum += graded[i].accuracy
@@ -217,15 +236,18 @@ class Optimizer():
                 male = ptential_parents[male]
                 female = ptential_parents[female]
 
+                s=time.time()
                 # Breed them.
                 babies = self.breed(male, female)
-
+                # logging.info("breed took {} sec".format(time.time() - s))
+                # s=time.time()
                 # Add the children one at a time.
                 for baby in babies:
                     # Don't grow larger than desired length.
                     if len(children) < desired_length:
                         children.append(baby)
-
+                # logging.info("children appending took {} sec".format(time.time()-s))
         parents.extend(children)
+        # logging.info("entire gen took {} sec".format(time.time() - s_))
 
         return parents
