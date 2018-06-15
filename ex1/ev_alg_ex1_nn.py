@@ -198,8 +198,8 @@ def fprop_relu_no_softmax(W,B,X):
     # h2 = sigmoid(z2)
     h2 = relu(z2)
     z3 = np.dot(W3, h2.T).reshape(-1) + b3
-    # h3 = softmax(z3)
-    return [h1,h2,z3]
+    h3 = relu(z3)
+    return [h1,h2,h3]
 
 def validate(W,B,valid):
     '''

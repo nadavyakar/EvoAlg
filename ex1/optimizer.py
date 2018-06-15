@@ -19,7 +19,7 @@ class Optimizer():
     """Class that implements genetic algorithm for MLP optimization."""
 
     def __init__(self, nn_param_choices, retain=0.4,
-                 random_select=0.2, mutate_chance=0.2):
+                 random_select=0.2, mutate_chance=0.4):
         """Create an optimizer.
 
         Args:
@@ -163,9 +163,9 @@ class Optimizer():
 
         layer_sizes = network.nn_param_choices[0]
         #  nadav: using a more efficient normal noise generation
-        network_mutation =  [ np.random.normal(0,0.1,(layer_sizes[l+1],layer_sizes[l])) for l in range(len(layer_sizes)-1) ]
+        network_mutation =  [ np.random.normal(0,0.3,(layer_sizes[l+1],layer_sizes[l])) for l in range(len(layer_sizes)-1) ]
                             # [ np.matrix([[np.random.normal(0,0.1) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1)]
-        B_mutation = [ np.random.normal(0,0.1,layer_sizes[l+1]) for l in range(len(layer_sizes)-1) ]
+        B_mutation = [ np.random.normal(0,0.3,layer_sizes[l+1]) for l in range(len(layer_sizes)-1) ]
             # [ np.matrix([np.random.normal(0,0.1) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
 
         for l in range(len(layer_sizes)-1):

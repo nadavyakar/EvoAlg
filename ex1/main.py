@@ -101,13 +101,14 @@ def   generate(generations, population, nn_param_choices):
         if i != generations - 1:
             # Do the evolution.
             networks = optimizer.evolve(networks)
+
     epocs_list = list(range(generations))
     plt.plot(epocs_list,avg_acc_list,'red')
     plt.xlabel("generations")
     plt.ylabel("accuracy")
     plt.savefig("accuracy.png")
     plt.clf()
-
+    
     # Sort our final population.
     networks = sorted(networks, key=lambda x: x.accuracy, reverse=True)
 
@@ -131,8 +132,8 @@ def print_networks(networks):
 
 def main():
     """Evolve a network."""
-    generations =  1200 # Number of times to evole the population.
-    population = 700  # Number of networks in each generation.
+    generations =  1000 # Number of times to evole the population.
+    population = 2000  # Number of networks in each generation.
 
     nn_param_image = [pic_size,128,64,nclasses], 1
 
