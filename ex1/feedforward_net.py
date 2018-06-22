@@ -7,7 +7,6 @@ import os
 import struct
 import numpy as np
 
-
 def read(dataset = "training", path = "."):
     if dataset is "training":
         fname_img = os.path.join(path, 'train-images-idx3-ubyte')
@@ -30,17 +29,6 @@ def read(dataset = "training", path = "."):
 
     for i in xrange(len(lbl)):
         yield get_img(i)
-
-# def show(image):
-#     from matplotlib import pyplot
-#     import matplotlib as mpl
-#     fig = pyplot.figure()
-#     ax = fig.add_subplot(1,1,1)
-#     imgplot = ax.imshow(image, cmap=mpl.cm.Greys)
-#     imgplot.set_interpolation('nearest')
-#     ax.xaxis.set_ticks_position('top')
-#     ax.yaxis.set_ticks_position('left')
-#     pyplot.show()
 
 class ActivationSigmoid:
     def __call__(self, IN_VEC):
@@ -71,16 +59,16 @@ test_x = []
 test_y = []
 for label,img in read("testing"):
     test_x.append(np.array([float(x) / 255 for x in img.reshape(-1)]))
-    # test_y.append(label)
+    test_y.append(label)
 
 architectures=[[pic_size,100,50,nclasses]]
-epocs=[10,100,130]
+epocs=[30]
 learning_rates=[0.01]
 weight_init_boundries=[0.08]
 
 validation_ratio=.2
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
-logging.basicConfig(filename="nn.log",level=logging.DEBUG)
+logging.basicConfig(filename="nn.log",level=logging.INFO)
 
 def init_model(params):
     '''
@@ -91,15 +79,6 @@ def init_model(params):
     layer_sizes, weight_init_boundry = params
     return [ np.matrix([[rnd.uniform(-weight_init_boundry,weight_init_boundry) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ], \
            [ np.matrix([rnd.uniform(-weight_init_boundry,weight_init_boundry) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
-class LossNegLogLikelihood:
-    '''
-    used in order to callculate the validation
-    '''
-    def __call__(self, V, y):
-        return -log(np.squeeze(np.asarray(V))[int(y)])
-    def derivative_z(self, out, Y):
-        return out-Y
-loss=LossNegLogLikelihood()
 def split_to_valid(train_x,train_y):
     data_set=zip(train_x, train_y)
     rnd.shuffle(data_set)
@@ -151,17 +130,17 @@ def bprop(W,B,X,Y,learning_rate):
     B[0] = B[0] - learning_rate*db1
 def validate(W,B,valid):
     '''
-    validate that the average loss is descending and the accuracy is accending, in order to see the setup converges
+    validate that the accuracy is accending, in order to see the setup converges
     '''
-    sum_loss= 0.0
     correct=0.0
+    out_list=[]
     for X, y in valid:
-        out = fprop(W,B,X)
-        sum_loss += loss(out[-1],y)
-        if out[-1].argmax() == y:
+        out=fprop(W,B,X)[-1].argmax()
+        out_list.append(out)
+        if out == y:
             correct += 1
-    return sum_loss/ len(valid), correct/ len(valid)
-def train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_list,avg_acc_list):
+    return correct/ len(valid), correct, out_list
+def train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_acc_list):
     '''
     train for the given period of epocs, validating for convergance on each epoc
     (usefull for testing for the right hyper param configuration and architecture setup)
@@ -174,43 +153,34 @@ def train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_l
         for X,y in train:
             bprop(W,B,X,Y[y],learning_rate)
         duration=time.time()-s
-        avg_loss,acc=validate(W, B, valid)
-        logging.debug("epoc {} avg_loss {} acc {} duration {}".format(e,avg_loss,acc,duration))
-        avg_loss_list.append(avg_loss)
-        avg_acc_list.append(acc)
+        avg_acc,acc,_=validate(W, B, valid)
+        logging.debug("epoc {} acc {} duration {}".format(e,acc,duration))
+        avg_acc_list.append(avg_acc)
     epocs_list = list(range(ending_epoc))
-    plt.plot(epocs_list,avg_loss_list,'red')
-    plt.xlabel("epocs")
-    plt.ylabel("loss")
-    plt.savefig("loss.e_{}.lr_{}.hs0_{}.hs1_{}.w_{}.png".format(ending_epoc,learning_rate,architectures[0][1],architectures[0][2],weight_init_boundries[0]))
-    plt.clf()
     plt.plot(epocs_list,avg_acc_list,'red')
     plt.xlabel("epocs")
     plt.ylabel("accuracy")
-    plt.savefig("accuracy.e_{}.lr_{}.hs0_{}.hs1_{}.w_{}.png".format(ending_epoc,learning_rate,architectures[0][1],architectures[0][2],weight_init_boundries[0]))
+    plt.savefig("accuracy.ff_net.{}.png".format(ending_epoc))
     plt.clf()
-    return avg_loss_list,avg_acc_list
-def test(W,B,test_x,ending_epoc,learning_rate,architecture,weight_init_boundry):
+    return avg_acc_list
+def test(W,B,test_x,test_y):
     '''
     test over the test set using the learned weights matrix
     '''
     c=0.0
-    with open("test.e_{}.lr_{}.hs1_{}.hs2_{}.w_{}.pred".format(
-            ending_epoc,learning_rate,architecture[1],architecture[2],weight_init_boundry), 'w') as f:
-        for X in test_x:
-            p=np.squeeze(np.asarray(fprop(W, B, X)[-1]))
-            # print("p {} y_hat {}".format(p,p.argmax()))
-            f.write("{}\n".format(p.argmax()))
-
+    avg_acc, _, out_list = validate(W, B, zip(test_x, test_y))
+    logging.info("test avg acc: {}".format(avg_acc))
+    with open("test.ff_net.pred", 'w') as f:
+        for out in out_list:
+            f.write("{}\n".format(out))
 for weight_init_boundry in weight_init_boundries:
      for architecture in architectures:
          for learning_rate in learning_rates:
              W,B=init_model((architecture, weight_init_boundry))
-             avg_loss_list = []
              avg_acc_list = []
              starting_epoc=0
              for ending_epoc in epocs:
                  logging.error("start training with params: e_{}.lr_{}.hs1_{}.hs2_{}.w_{}".format(ending_epoc,learning_rate,architecture[1],architecture[2],weight_init_boundry))
-                 avg_loss_list, avg_acc_list = train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_list,avg_acc_list)
+                 avg_acc_list = train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_acc_list)
                  starting_epoc = ending_epoc
-                 test(W,B,test_x,ending_epoc,learning_rate,architecture,weight_init_boundry)
+                 test(W,B,test_x,test_y)
