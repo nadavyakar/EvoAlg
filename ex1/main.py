@@ -3,10 +3,7 @@ import logging
 from optimizer import Optimizer
 from ev_alg_ex1_nn import pic_size
 from ev_alg_ex1_nn import nclasses
-from ev_alg_ex1_nn import test, test_x
-from ev_alg_ex1_nn import train_x
-from ev_alg_ex1_nn import train_y
-from ev_alg_ex1_nn import split_to_valid
+from ev_alg_ex1_nn import test, test_x, train_x, train_y, test_y
 import random as rnd
 import matplotlib.pyplot as plt
 import time
@@ -58,7 +55,7 @@ def get_average_accuracy(networks):
         total_accuracy += network.avg_accuracy
 
     return total_accuracy / len(networks)
-num_of_chunks=60
+num_of_chunks=10
 def split_to_valid_chunks(train_x,train_y):
     data_set=zip(train_x, train_y)
     rnd.shuffle(data_set)
@@ -108,7 +105,7 @@ def   generate(generations, population, nn_param_choices):
     plt.ylabel("accuracy")
     plt.savefig("accuracy.png")
     plt.clf()
-    
+
     # Sort our final population.
     networks = sorted(networks, key=lambda x: x.accuracy, reverse=True)
 
@@ -117,7 +114,7 @@ def   generate(generations, population, nn_param_choices):
 
 
     # test(networks[0].network, networks[0].B,([0,0],[0,1],[1,0],[1,1]))
-    test(networks[0].network, networks[0].B,test_x)
+    test(networks[0].network, networks[0].B,test_x,test_y)
 
 def print_networks(networks):
     """Print a list of networks.
@@ -132,10 +129,10 @@ def print_networks(networks):
 
 def main():
     """Evolve a network."""
-    generations =  1000 # Number of times to evole the population.
-    population = 2000  # Number of networks in each generation.
+    generations =  1300 # Number of times to evole the population.
+    population = 100  # Number of networks in each generation.
 
-    nn_param_image = [pic_size,128,64,nclasses], 1
+    nn_param_image = [pic_size,100,nclasses], 1
 
     nn_param = nn_param_image
 

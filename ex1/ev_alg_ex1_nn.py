@@ -105,8 +105,9 @@ class ActivationRelu:
 class ActivationSoftmax:
     def __call__(self, IN_VEC):
         V = np.squeeze(np.array(IN_VEC))
-        denominator = sum([exp(v) for v in V])
-        return np.array([exp(v) / denominator for v in V ])
+        max_=max(V)
+        denominator = sum([exp(v-max_) for v in V])
+        return np.array([exp(v-max_) / denominator for v in V ])
     def derivative(self, out):
         raise Error("ERROR: you should not have gotten here ActivationSoftmax")
 
@@ -170,18 +171,12 @@ def fprop_relu(W,B,X):
     b1=B[0]
     W2=W[1]
     b2=B[1]
-    W3=W[2]
-    b3=B[2]
     x=X
     z1 = np.dot(W1, x) + b1
-    # h1 = sigmoid(z1)
     h1 = relu(z1)
     z2 = np.dot(W2, h1.T).reshape(-1) + b2
-    # h2 = sigmoid(z2)
-    h2 = relu(z2)
-    z3 = np.dot(W3, h2.T).reshape(-1) + b3
-    h3 = softmax(z3)
-    return [h1,h2,h3]
+    h2 = softmax(z2)
+    return [h1,h2]
 
 def fprop_relu_no_softmax(W,B,X):
     W1=W[0]
@@ -209,16 +204,18 @@ def validate(W,B,valid):
     correct=0.0
     i=0
     # s=time.time()
+    out_list=[]
     for X, y in valid:
         s_=time.time()
         i+=1
         # out = fprop(W,B,X)
-        out=fprop_relu_no_softmax(W,B,X)
+        out=fprop_relu(W,B,X)[-1].argmax()
+        out_list.append(out)
         # v = loss(out[-1],y)
         # sum_loss += loss(out[-1],y)
       #  print("{} X  p {} y {}".format(i,out[-1].argmax(),y))
        # logging.error("{} X p {} y {}".format(i,out[-1].argmax(),y))
-        if out[-1].argmax() == y:
+        if out == y:
             correct += 1
         # if i==1:
         #     logging.info("single net valid over first example took {} sec".format(time.time() - s_))
@@ -229,21 +226,20 @@ def validate(W,B,valid):
         #     fprop_relu_no_softmax(W, B, X)
         #     logging.info("single net fprop using relu without softmax took {} sec".format(time.time() - s_))
     # logging.info("single net valid took {} sec for {} examples".format(time.time()-s,len(valid)))
-    return sum_loss/ len(valid), correct/ len(valid), correct
+    return sum_loss/ len(valid), correct/ len(valid), correct, out_list
 
 
 
-def test(W,B,test_x):
+def test(W,B,test_x,test_y):
     '''
     test over the test set using the learned weights matrix
     '''
     c=0.0
+    _, avg_acc, _, out_list = validate(W, B, zip(test_x, test_y))
+    logging.info("test avg acc: {}".format(avg_acc))
     with open("test.pred", 'w') as f:
-        for X in test_x:
-            p=np.squeeze(np.asarray(fprop(W, B, X)[-1]))
-            # print("p {} y_hat {}".format(p,p.argmax()))
-            f.write("{}\n".format(p.argmax()))
-
+        for out in out_list:
+            f.write("{}\n".format(out))
 
 train_x = []
 train_y = []
@@ -256,10 +252,9 @@ for label,img in read("training", "."):
 
 test_x = []
 test_y = []
-# for label,img in read("testing", "C:\Users\\amir\Desktop\Keren\projects\ev_algo_ex1"):
-#      test_x.append(np.array([float(x) / 255 for x in img.reshape(-1)]))
-test_x = train_x
-
+for label,img in read("testing", "."):
+     test_x.append(np.array([float(x) / 255 for x in img.reshape(-1)]))
+     test_y.append(label)
 
 
 # data_set=zip(train_x, train_y)

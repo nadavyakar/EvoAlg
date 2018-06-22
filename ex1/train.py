@@ -17,7 +17,7 @@ def train_and_score(network, B, valid,i):
     """
 
 #    logging.info(" validate")
-    _,avg_acc,acc=validate(network, B, valid)
+    _,avg_acc,acc,_=validate(network, B, valid)
     #logging.info("net {} avg loss {} avg_acc {} acc {}".format(i,avg_loss,avg_acc, acc))
 
 

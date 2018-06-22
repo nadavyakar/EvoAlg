@@ -43,4 +43,4 @@ class Network():
 
     def print_network(self):
         """Print out a network."""
-        logging.info("Network accuracy: %.2f%%" % (self.accuracy))
+        logging.info("Network accuracy: %.2f%%" % (self.avg_accuracy))
