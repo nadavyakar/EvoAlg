@@ -18,7 +18,7 @@ import time
 class Optimizer():
     """Class that implements genetic algorithm for MLP optimization."""
 
-    def __init__(self, nn_param_choices, retain=0.4,
+    def __init__(self, nn_param_choices, retain=0.1,
                  random_select=0.2, mutate_chance=0.4):
         """Create an optimizer.
 
@@ -163,9 +163,11 @@ class Optimizer():
 
         layer_sizes = network.nn_param_choices[0]
         #  nadav: using a more efficient normal noise generation
-        network_mutation =  [ np.random.normal(0,0.3,(layer_sizes[l+1],layer_sizes[l])) for l in range(len(layer_sizes)-1) ]
+        # changed to -0.01 to 0.01
+        network_mutation =  [ np.random.normal(-0.01,0.01,(layer_sizes[l+1],layer_sizes[l])) for l in range(len(layer_sizes)-1) ]
                             # [ np.matrix([[np.random.normal(0,0.1) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1)]
-        B_mutation = [ np.random.normal(0,0.3,layer_sizes[l+1]) for l in range(len(layer_sizes)-1) ]
+        B_mutation = [ np.random.normal(-0.01,0.01,layer_sizes[l+1]) for l in range(len(layer_sizes)-1) ]
+        # changed to -0.01 to 0.01
             # [ np.matrix([np.random.normal(0,0.1) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
 
         for l in range(len(layer_sizes)-1):
@@ -191,32 +193,15 @@ class Optimizer():
         # s_=s
         graded = [(self.fitness(network), network) for network in pop]
         # Sort on the scores.
-        graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
-
-        # logging.info("evolve: sorting took {} sec".format(time.time()-s))
-        rank_sum = 0
-        for i in range(len(graded)):
-            rank_sum += graded[i].accuracy
-
-
-
-        for i in range(len(graded)):
-            net = graded[i]
-            net.accuracy = float(net.accuracy) / rank_sum
+        graded = [x[1] for x in sorted(graded, key=lambda x: x[0])]
 
         # Get the number we want to keep for the next gen.
         retain_length = int(len(graded)*self.retain)
-        ptential_parents_length = int(len(graded)*0.1)
+        ptential_parents_length = len(graded)- retain_length
         # The parents are every network we want to keep.
 
-        parents = graded[:10]
-        ptential_parents = graded[:ptential_parents_length]
-        ptential_parents_lengh = len(ptential_parents)
-
-        # For those we aren't keeping, randomly keep some anyway.
-        for individual in graded[10:]:
-            if self.random_select > random.random():
-                parents.append(individual)
+        parents = graded[-retain_length:]
+        ptential_parents = graded[-ptential_parents_length:]
 
         # Now find out how many spots we have left to fill.
         #parents_length = len(parents)
@@ -228,15 +213,12 @@ class Optimizer():
         while len(children) < desired_length:
 
             # Get a random mom and dad.
-            male = random.randint(0, ptential_parents_lengh-1)
-            female = random.randint(0, ptential_parents_lengh-1)
-
+            male,female = self.select_parents(ptential_parents)
             # Assuming they aren't the same network...
             if male != female:
                 male = ptential_parents[male]
                 female = ptential_parents[female]
 
-                s=time.time()
                 # Breed them.
                 babies = self.breed(male, female)
                 # logging.info("breed took {} sec".format(time.time() - s))
@@ -251,3 +233,22 @@ class Optimizer():
         # logging.info("entire gen took {} sec".format(time.time() - s_))
 
         return parents
+
+
+    def select_parents(self, pop):
+        population_ranks=[]
+        sum = (len(pop)+1)*len(pop)/2
+        mother_index=random.randint(0, sum-1)
+        father_index=random.randint(0, sum-1)
+        rank=0
+        for i in range(1, len(pop) + 1):
+            population_ranks.append(rank)
+            rank+=i
+        population_ranks.append(sum)
+
+        for i in range(len(population_ranks)-1):
+            if mother_index<population_ranks[i+1] and mother_index>=population_ranks[i]:
+                selected_mother=i
+            if father_index<population_ranks[i+1] and father_index>=population_ranks[i]:
+                selected_father=i
+        return selected_mother,selected_father

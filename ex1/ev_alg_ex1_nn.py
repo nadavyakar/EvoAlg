@@ -61,11 +61,12 @@ def init_model(params):
     where each cell in row i and column j of weigh matrix l represents the incoming weights to neuron i in layer l+1
     from neuron j in layer l
     '''
+
     layer_sizes, weight_init_boundry = params
-    return [ np.matrix([[rnd.uniform(-weight_init_boundry,weight_init_boundry) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ], \
-           [ np.matrix([rnd.uniform(-weight_init_boundry,weight_init_boundry) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
+    W =  [ np.matrix([[np.random.normal(0, np.sqrt(6.0 / (layer_sizes[l] + layer_sizes[l+1]))) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
+    B =  [ np.matrix([np.random.normal(0, np.sqrt(6.0 / (layer_sizes[l] + layer_sizes[l+1]))) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
 
-
+    return W, B
 def init_model2(params):
     '''
     initialize the weight matrices using a uniformly distributed weight around 0,
